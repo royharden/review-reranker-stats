@@ -27,13 +27,33 @@ parent folder). Every claim about behaviour is a design intention until the defe
 - `tests/stats/`, `tests/ratingstats/`: Vitest test source with hand-derived expected values (not yet run).
 - `config.default.json`, `config.eval.json`: parameter proposals, not yet tuned or frozen.
 
+## What exists so far (milestone M2)
+
+- `src/core/config.ts`: `validateConfig` checks and narrows `config.default.json` (no casts) and returns every
+  error; `configHash` tags worker responses.
+- `src/core/data/`: CSV schema, field validation (timestamps must be ISO with a zone or epoch milliseconds;
+  zone-less ISO and epoch seconds are rejected), papaparse ingest with a byte pre-check and a 200,000-row cap that
+  rejects the whole file, bounded rejected-row examples, `insufficient` labels, a canonical `Dataset` and a SHA-256
+  `datasetHash`.
+- `src/core/synth/`: seeded `demo`/`eval` catalogue generator with a separate truth object, code-built named traps
+  (`tiny_perfect`, `category_gap`, burst traps, `quality_drift`, ...) with exported expected outcomes, and the sample
+  assembly that sends everything through the real CSV parser.
+- `fixtures/parsing-traps.csv` (42 hand-written rows covering every parsing trap, including the injection-text row)
+  and `fixtures/parsing-traps-duplicate-header.csv`.
+- `src/core/rankers/`: the `Ranker` interface, the `mean` baseline (it claims no interval) and a registry.
+- `src/worker/`: typed message protocol, the worker logic (`handler.ts`), the module worker entry and a client whose
+  Cancel terminates and respawns the worker; `src/ui/state.ts` discards stale responses.
+- `src/ui/`: Load page (upload, `asOf` field, Load sample, validation report) and a bare Ranking table.
+- Test source under `tests/data`, `tests/synth`, `tests/worker`, `tests/rankers`, `tests/ui` and
+  `tests/config.test.ts` (written, not run).
+
 ## Validating later
 
 Once installs are authorised, from this folder:
 
 ```sh
 npm install          # resolves the pinned versions and creates package-lock.json
-npm run typecheck
+npm run typecheck    # app (DOM), worker (WebWorker) and Node configs
 npm run lint
 npm test
 npm run build

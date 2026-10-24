@@ -1,0 +1,23 @@
+{
+  // Module Web Worker entry only (src/worker/compute.worker.ts) and everything it imports (handler, protocol,
+  // src/core). WebWorker lib instead of DOM: the two libs declare conflicting globals and cannot share one program
+  // (DEFERRED-VALIDATION D22/D23). src/core uses only globals present in both libs (TextEncoder, crypto.subtle).
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "WebWorker"],
+    "types": [],
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "files": ["src/worker/compute.worker.ts"]
+}

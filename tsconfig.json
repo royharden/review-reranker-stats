@@ -19,5 +19,7 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src", "tests"]
+  "include": ["src", "tests"],
+  // The worker entry is checked by tsconfig.worker.json (WebWorker lib); DOM + WebWorker libs conflict in one program.
+  "exclude": ["src/worker/compute.worker.ts"]
 }

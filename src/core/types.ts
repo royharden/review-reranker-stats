@@ -137,6 +137,8 @@ export interface Parts {
 /** One item's result for one method. `lo`/`hi` are null when the method claims no interval (PLAN C4). */
 export interface RankResult {
   item_id: string;
+  /** The item's category (first accepted row wins). Added in M2 so tables, filters and exports need no second lookup. */
+  category: string;
   score: number;
   lo: number | null;
   hi: number | null;
