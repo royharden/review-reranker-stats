@@ -49,7 +49,9 @@ export function reviewWeights(dataset: Dataset, config: RankConfig, ctx: RankCon
   const out: ReviewWeights = { weights: [], recency: [], burst: [], recencyClamped: [], productClamped: [] };
   dataset.reviews.forEach((r, i) => {
     const verified = factors.verified && r.verified === false ? config.unverified_weight : 1;
-    const age = Math.max(0, (dataset.asOf - r.ts) / DAY_MS);
+    const asOf = ctx.asOfByCategory?.get(r.category) ?? dataset.asOf;
+    if (!Number.isFinite(asOf)) throw new RangeError('category asOf must be finite');
+    const age = Math.max(0, (asOf - r.ts) / DAY_MS);
     const rawRecency = factors.recency ? Math.pow(0.5, age / config.half_life_days) : 1;
     const recency = Math.max(config.weight_floor, rawRecency);
     const burst = factors.burst ? ctx.reviewBurstWeight?.[i] ?? 1 : 1;

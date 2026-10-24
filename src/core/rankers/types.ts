@@ -11,6 +11,8 @@ import type { Dataset, DetectorStatus, FlaggedSpanRef, IntervalMeta, MethodId, R
  * a ranker that does not use a field ignores it.
  */
 export interface RankContext {
+  /** Evaluation only: each category is scored at its frozen cutoff; UI callers use dataset.asOf. */
+  asOfByCategory?: ReadonlyMap<string, number>;
   /**
    * Burst weight per review, indexed like Dataset.reviews, after ruling replay (1 = not down-weighted). null when the
    * detector has not run; then every burst weight is 1.

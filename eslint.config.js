@@ -125,11 +125,11 @@ export default tseslint.config(
     },
   },
 
-  // TODO(M5): held-out isolation (CL §7 F6c, PLAN M5 acceptance 2). Tuning modules must never import
-  // src/core/eval/heldout.ts. The file globs below are a placeholder until M5 names its tuning modules; the rule
+  // M5 held-out isolation (CL §7 F6c, PLAN M5 acceptance 2). Tuning modules must never import
+  // src/core/eval/heldout.ts. The rule
   // re-includes CORE_RESTRICTED_IMPORTS because a later block's options replace the core block's options.
   {
-    files: ['src/core/eval/tune*.ts', 'src/core/eval/temporal.ts', 'src/core/eval/robustness.ts', 'src/core/eval/calibration.ts', 'src/core/eval/ablations.ts'],
+    files: ['src/core/eval/tune*.ts', 'src/core/eval/split.ts', 'src/core/eval/scoring.ts', 'src/core/eval/temporal.ts', 'src/core/eval/plantBursts.ts', 'src/core/eval/robustness.ts', 'src/core/eval/calibration.ts', 'src/core/eval/ablations.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -138,7 +138,7 @@ export default tseslint.config(
           patterns: [
             ...CORE_RESTRICTED_IMPORTS.patterns,
             {
-              group: ['**/heldout', '**/heldout.ts', '**/eval/heldout', 'src/core/eval/heldout'],
+              group: ['**/heldout', '**/heldout.ts', '**/eval/heldout', 'src/core/eval/heldout', '**/runner', '**/runner.ts', '**/fsAdapters', '**/fsAdapters.ts', '**/eval/index', '**/eval/index.ts'],
               message: 'Tuning/dev code must never load held-out data; only the final runner may import heldout.ts.',
             },
           ],

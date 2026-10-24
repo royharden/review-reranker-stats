@@ -19,12 +19,14 @@ export function detectorConfigHash(config: RankConfig, asOf: number): Promise<st
     max_spans_per_item: config.max_spans_per_item, max_perm_tests: config.max_perm_tests, detector_seed: config.detector_seed }));
 }
 
-export async function detectBursts(dataset: Dataset, config: RankConfig): Promise<DetectionResult> {
+export async function detectBursts(dataset: Dataset, config: RankConfig, asOfByCategory?: ReadonlyMap<string, number>): Promise<DetectionResult> {
   const items: ItemDetection[] = [];
   const all: BurstSpan[] = [];
   const diagnostics = { candidateDays: 0, baselineWindowsEvaluated: 0 };
-  const asOfDay = Math.floor(dataset.asOf / DAY_MS);
   for (const item of dataset.items.values()) {
+    const scoringTime = asOfByCategory?.get(item.category) ?? dataset.asOf;
+    if (!Number.isFinite(scoringTime)) throw new RangeError('category asOf must be finite');
+    const asOfDay = Math.floor(scoringTime / DAY_MS);
     const result: ItemDetection = { itemId: item.item_id, status: 'assessed', reasons: [], candidateWindowCount: 0,
       assessableWindowCount: 0, unassessableWindowCount: 0, spanCount: 0, testedSpanCount: 0 };
     if (item.n < config.burst_min_reviews) result.reasons.push('too-few-reviews');
@@ -99,7 +101,10 @@ export async function detectBursts(dataset: Dataset, config: RankConfig): Promis
   }
   const status: DetectorStatus = items.some((item) => item.status === 'partial') ? 'partial'
     : items.length > 0 && items.every((item) => item.status === 'unassessable') ? 'unassessable' : 'assessed';
-  return { schema: 'bursts-1', datasetHash: dataset.datasetHash, detectorConfigHash: await detectorConfigHash(config, dataset.asOf),
+  const baseHash = await detectorConfigHash(config, dataset.asOf);
+  const configHash = asOfByCategory === undefined ? baseHash : await sha256Hex(canonicalJson({ baseHash,
+    scoringTimes: Array.from(asOfByCategory).sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0) }));
+  return { schema: 'bursts-1', datasetHash: dataset.datasetHash, detectorConfigHash: configHash,
     status, items, spans: all, testedSpanCount, diagnostics };
 }
 

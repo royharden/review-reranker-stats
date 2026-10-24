@@ -1,6 +1,8 @@
 node_modules/
 dist/
 data/local/
+results/
+results-*/
 coverage/
 .env
 .env.*

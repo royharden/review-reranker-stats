@@ -102,6 +102,35 @@ npm run build
 
 The full list, with what each check covers, is in `docs/DEFERRED-VALIDATION.md`.
 
+## Evaluation source (M5; UNRUN)
+
+The browser-safe evalkit and Node scripts now implement a dev-only tuning boundary, a sealed final-data adapter,
+frozen numeric Bayes prior count and baseline/key selection, all-item pre-cutoff final prior refitting, paired item
+bootstrap, distinct dev/final attack families, calibration against matching truth, ablations and generated reports.
+Final targets never fit priors. Local normalized CSV evaluation uses the same path; no data fetch is performed.
+Category-specific scoring times keep recency, detector eligibility and drift truth on each frozen cutoff.
+
+After activation, `npm run eval` prepares sealed partitions, tunes dev only, freezes `results/manifest.json` and
+writes dev results. `npm run eval -- --final` uses that freeze without retuning. A further read requires the explicit
+`--final --reread` flag and remains disclosed in the receipt history. A failed final-data read also consumes its
+attempt. Existing manifests cannot be overwritten by another dev run: use a separate `--out` directory for a
+distinct experiment. Archived per-attempt reports remain beside the current summary. Local source rows and result
+artifacts are gitignored. The seal is a capability boundary in the evaluation API, not encryption or access control.
+
+Optional `--benchmark` measures detector-plus-ranker work on exact 100k/200k review catalogues and sampled Node
+process heap; browser-worker peak memory remains deferred. Without the flag, runtime is `not yet measured`.
+For a previously normalized local CSV: `npm run eval -- --csv data/local/reviews.csv --as-of 2025-01-01T00:00:00Z --out results-real`.
+The local CSV must have zero rejected rows. Real-data interval comparisons are predictive agreement, not calibration.
+`npm run gen:fixtures -- 33` writes a seeded demo/trap dump and separate truth labels under `data/local/fixtures/`.
+All these commands, including the ~2k-review in-memory smoke test, remain **UNRUN**.
+
+<!-- results:start -->
+
+**not yet measured** — checks (a)–(e), temporal agreement, attack damage, detector precision/recall, organic downweight,
+interval coverage, fitted-prior drift, runtime, heap and the four named-failure sections await evaluation.
+
+<!-- results:end -->
+
 ## Licence
 
 MIT (see `LICENSE`), committed provisionally; the owner confirms the licence before any public release.
