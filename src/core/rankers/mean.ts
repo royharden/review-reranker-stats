@@ -5,6 +5,7 @@ import { mean } from '../stats/weighted';
 import type { Dataset, IntervalMeta, Parts, RankConfig, RankResult } from '../types';
 import { finalizeRanking } from './finalize';
 import type { RankContext, Ranker } from './types';
+import { flaggedSpanRefs } from './weights';
 
 const NO_INTERVAL: IntervalMeta = { quantity: 'not-applicable', level: null };
 
@@ -50,7 +51,7 @@ function rankMean(dataset: Dataset, _config: RankConfig, ctx: RankContext): Rank
       },
       rank_by_method: {},
       rank_without: { verified: null, recency: null, burst: null },
-      flagged_spans: [],
+      flagged_spans: flaggedSpanRefs(ctx, item.item_id),
       within_category_percentile: null,
       insufficient: item.insufficient,
       detector_status: ctx.itemDetectorStatus?.get(item.item_id) ?? 'not-run',

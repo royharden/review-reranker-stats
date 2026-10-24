@@ -49,6 +49,16 @@ parent folder). Every claim about behaviour is a design intention until the defe
 
 ## Validating later
 
+M3 source now includes all six ranking methods, three weight ablations, posterior-mean/lower-endpoint EB keys,
+positive review weights, and the sparse three-pass burst detector with seeded permutation tests and per-item Holm
+correction. The worker computes and returns every method plus detector results; the thin UI still displays only
+`mean` until the full UI milestone. New test source covers the named traps, floors, overlap handling, caps,
+determinism and no exclusion. None of these tests or computations has been run.
+
+Ranking uses absolute star estimates (or Wilson's lower endpoint on the top-box-share axis). Within-category
+percentiles are display-only, so category filtering does not redefine global rank. Detector p-values are evidence
+scores, not fraud probabilities; volume alone never downweights a review, and untested spans remain marked partial.
+
 Once installs are authorised, from this folder:
 
 ```sh

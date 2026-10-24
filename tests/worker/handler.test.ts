@@ -36,7 +36,10 @@ describe('compute handler', () => {
     expect(computed.requestId).toBe(2);
     expect(computed.datasetHash).toBe(loaded.datasetHash);
     expect(computed.configHash).toBe(await configHash(config));
-    expect(computed.methods).toContain('mean');
+    expect(computed.methods).toEqual(['mean', 'bayes_global', 'wilson', 'eb_category', 'eb_global', 'full', 'full-verified', 'full-recency', 'full-burst']);
+    expect(computed.detection.datasetHash).toBe(loaded.datasetHash);
+    expect(computed.detection.detectorConfigHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(computed.rankings.full?.[0].parts.rank_by_method).toHaveProperty('full-burst');
     expect(computed.rankings.mean?.map((r) => r.item_id)).toEqual(['it-1', 'it-2']);
   });
 

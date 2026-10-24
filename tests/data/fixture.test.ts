@@ -63,7 +63,8 @@ describe('Load sample path (generator + traps + fixture through the real CSV par
     expect(report.accepted).toBe(sample.reviews.length + 20);
     expect(report.rejected).toBe(22);
     expect(dataset?.categories).toEqual(expect.arrayContaining(['books', 'trap:tiny_perfect', 'trap:bursts', 'trap:parsing']));
-    // 6 generated + 5 trap categories (tiny_perfect, category_gap_low, category_gap_high, bursts, recency) + trap:parsing
-    expect(report.categoryCount).toBe(6 + 5 + 1);
+    // 6 generated + 6 trap categories (tiny_perfect, category_gap_low, category_gap_high, bursts, recency,
+    // recency_stable) + trap:parsing. The fixed stable control has its own category to guarantee direction.
+    expect(report.categoryCount).toBe(6 + 6 + 1);
   }, 60_000);
 });

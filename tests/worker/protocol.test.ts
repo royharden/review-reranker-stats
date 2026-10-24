@@ -45,6 +45,8 @@ const computed = (requestId: number, datasetHash: string, configHash: string): W
   configHash,
   rankings: { mean: [] },
   methods: ['mean'],
+  detection: { schema: 'bursts-1', datasetHash, detectorConfigHash: 'detector-C', status: 'assessed', items: [], spans: [], testedSpanCount: 0,
+    diagnostics: { candidateDays: 0, baselineWindowsEvaluated: 0 } },
 });
 
 function run(state: AppState, ...actions: Parameters<typeof appReducer>[1][]): AppState {

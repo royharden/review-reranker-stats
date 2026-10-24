@@ -583,14 +583,23 @@ export function buildTraps(asOf: number, seed: number): TrapBuild {
     before.truth.periods = periods;
 
     const stableId = 'trap:quality_drift:stable_sparse';
-    w.organic(stableId, cat, stratifiedDays(anchor - 730, last, 8), STABLE_8, 0.85);
+    const stableCat = 'trap:recency_stable';
+    // An exact four-star background isolates the control's direction from refitting the drifting item's prior.
+    w.background('recency_stable', stableCat, 20, () => [0, 0, 0, 1, 0], () => 40, anchor - 730, last);
+    const stable = w.organic(stableId, stableCat, [...Array<number>(7).fill(anchor - 730), last], STABLE_8, 1);
+    // Fixed multiset, ordered high-to-low in time: seven old reviews total 31 stars, one recent review is 3.
+    // At half-life 365 d the weighted mean is below 4; without recency it is 4.25. Both EB priors and posteriors
+    // lie between the control's mean and the fixed background's 4, so refitting cannot reverse the direction.
+    stable.reviews.sort((a, b) => a.ts - b.ts);
+    const stableRatings = stable.reviews.map((r) => r.rating).sort((a, b) => b - a);
+    stable.reviews.forEach((r, i) => { r.rating = stableRatings[i]; });
     w.meta.push({
       name: 'quality_drift',
-      categories: [cat],
+      categories: [cat, stableCat],
       roles: { drift: driftId, stable_sparse: stableId },
       outcome: 'recency_helps_drift_hurts_stable',
       expectation:
-        'The drift item improved to its current-period distribution 182 days before asOf: recency moves its estimate toward the current-period truth. The stable sparse item (8 reviews, 4.25, mostly old) loses effective weight under recency and is pulled further toward the category prior.',
+        'The drift item improved to its current-period distribution 182 days before asOf: recency moves its estimate toward the current-period truth. The stable sparse control has seven old higher ratings and one recent lower rating in a fixed four-star background category; recency moves its estimate below the estimate without recency.',
       burst: null,
       target_expected_mean: after.truth.expected_mean,
       category_quartiles: null,

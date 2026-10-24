@@ -7,7 +7,8 @@
 import { configHash, defaultConfig, validateConfig } from '../core/config';
 import { ingestCsvBlob, ingestCsvText } from '../core/data/parse';
 import type { IngestLimits, IngestResult } from '../core/data/parse';
-import { emptyRankContext } from '../core/rankers/types';
+import { contextFromDetection, detectBursts } from '../core/burst/detect';
+import { annotateRankings } from '../core/rankers/ablations';
 import { registeredRankers } from '../core/rankers/registry';
 import { buildSampleCsv } from '../core/synth/sample';
 import type { Dataset, MethodId, RankResult } from '../core/types';
@@ -112,8 +113,11 @@ export function createComputeHandler(post: Post): ComputeHandler {
     }
     const config = validated.config;
     const cfgHash = await configHash(config);
-    // req.rulings: replayed into ctx.reviewBurstWeight from M4 on; M2 has no detector, so the context is empty.
-    const ctx = emptyRankContext();
+    progress(requestId, 'detect', 0, cfgHash);
+    const detection = await detectBursts(ds, config);
+    // M4 replays req.rulings into these span weights; M3 uses the unreviewed default.
+    const ctx = contextFromDetection(ds, detection, config);
+    progress(requestId, 'detect', 1, cfgHash);
     const rankers = registeredRankers();
     const rankings: Partial<Record<MethodId, RankResult[]>> = {};
     const methods: MethodId[] = [];
@@ -122,6 +126,7 @@ export function createComputeHandler(post: Post): ComputeHandler {
       rankings[ranker.id] = ranker.rank(ds, config, ctx);
       methods.push(ranker.id);
     });
+    annotateRankings(rankings);
     post({
       type: 'computed',
       schemaVersion: SCHEMA_VERSION,
@@ -130,6 +135,7 @@ export function createComputeHandler(post: Post): ComputeHandler {
       configHash: cfgHash,
       rankings,
       methods,
+      detection,
     });
   };
 

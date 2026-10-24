@@ -6,6 +6,7 @@
 // discarded and counted. Request ids must strictly increase.
 
 import type { ValidationReport } from '../core/data/schema';
+import type { DetectionResult } from '../core/burst/types';
 import type { MethodId, RankResult } from '../core/types';
 import { SCHEMA_VERSION } from '../worker/protocol';
 import type { ErrorCode, ProgressPhase, WorkerResponse } from '../worker/protocol';
@@ -29,6 +30,7 @@ export interface AppState {
   configHash: string | null;
   rankings: Partial<Record<MethodId, RankResult[]>> | null;
   methods: MethodId[];
+  detection: DetectionResult | null;
   progress: { phase: ProgressPhase; pct: number } | null;
   error: UiError | null;
   /** Responses discarded as stale (for display/debugging and tests). */
@@ -51,6 +53,7 @@ export function initialAppState(): AppState {
     configHash: null,
     rankings: null,
     methods: [],
+    detection: null,
     progress: null,
     error: null,
     staleDiscarded: 0,
@@ -78,7 +81,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       };
       if (action.kind === 'load') {
         // A new load supersedes everything derived from the previous dataset.
-        return { ...base, phase: 'loading', report: null, datasetHash: null, configHash: null, rankings: null, methods: [] };
+        return { ...base, phase: 'loading', report: null, datasetHash: null, configHash: null, rankings: null, methods: [], detection: null };
       }
       // Keep the previous rankings visible (marked as recomputing) until the new ones arrive.
       return { ...base, phase: 'computing' };
@@ -101,6 +104,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
             configHash: null,
             rankings: null,
             methods: [],
+            detection: null,
           };
         case 'computed':
           return {
@@ -111,6 +115,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
             configHash: r.configHash,
             rankings: r.rankings,
             methods: r.methods,
+            detection: r.detection,
           };
         case 'error':
           return {
@@ -136,6 +141,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         configHash: null,
         rankings: null,
         methods: [],
+        detection: null,
         error: { code: 'cancelled', message: 'Cancelled. The compute worker was restarted; load the data again.', details: [] },
       };
 
@@ -148,6 +154,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         datasetHash: null,
         rankings: null,
         methods: [],
+        detection: null,
         error: { code: 'crash', message: action.message, details: [] },
       };
   }

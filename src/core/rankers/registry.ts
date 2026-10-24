@@ -3,6 +3,11 @@
 
 import type { MethodId } from '../types';
 import { meanRanker } from './mean';
+import { bayesGlobalRanker } from './bayesGlobal';
+import { wilsonRanker } from './wilson';
+import { ebCategoryRanker, ebGlobalRanker } from './ebNormal';
+import { fullRanker } from './full';
+import { ablationRankers } from './ablations';
 import type { Ranker } from './types';
 
 /** Display order for every method id (registered or not yet built). */
@@ -18,7 +23,9 @@ export const METHOD_ORDER: readonly MethodId[] = [
   'full-burst',
 ];
 
-const REGISTRY: ReadonlyMap<MethodId, Ranker> = new Map<MethodId, Ranker>([[meanRanker.id, meanRanker]]);
+const REGISTRY: ReadonlyMap<MethodId, Ranker> = new Map<MethodId, Ranker>(
+  [meanRanker, bayesGlobalRanker, wilsonRanker, ebCategoryRanker, ebGlobalRanker, fullRanker, ...ablationRankers].map((ranker): [MethodId, Ranker] => [ranker.id, ranker]),
+);
 
 export function getRanker(id: MethodId): Ranker | undefined {
   return REGISTRY.get(id);

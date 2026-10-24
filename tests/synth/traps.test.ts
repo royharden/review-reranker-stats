@@ -269,5 +269,12 @@ describe('quality_drift + stable sparse control', () => {
     expect(rs).toHaveLength(8);
     expect(mean(rs.map((r) => r.rating))).toBe(4.25);
     expect(Math.max(...rs.map(day)) - Math.min(...rs.map(day))).toBeGreaterThan(600);
+    expect(rs.every((r) => r.verified === true)).toBe(true);
+    const ordered = rs.slice().sort((a, b) => a.ts - b.ts);
+    expect(ordered.map((r) => r.rating)).toEqual([5, 5, 5, 4, 4, 4, 4, 3]);
+    expect(ordered.slice(0, 7).every((r) => day(r) === ANCHOR - 730)).toBe(true);
+    const background = built.reviews.filter((r) => r.category === 'trap:recency_stable' && r.item_id !== rs[0].item_id);
+    expect(new Set(background.map((r) => r.item_id)).size).toBe(20);
+    expect(background.every((r) => r.rating === 4)).toBe(true);
   });
 });

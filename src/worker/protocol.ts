@@ -5,6 +5,7 @@
 // data only (a File/Blob is structured-cloneable; Maps are avoided in responses).
 
 import type { ValidationReport } from '../core/data/schema';
+import type { DetectionResult } from '../core/burst/types';
 import type { MethodId, RankResult } from '../core/types';
 
 export const SCHEMA_VERSION = 1;
@@ -34,7 +35,7 @@ export interface ComputeRequest {
 
 export type WorkerRequest = LoadRequest | ComputeRequest;
 
-export type ProgressPhase = 'generate' | 'parse' | 'index' | 'rank';
+export type ProgressPhase = 'generate' | 'parse' | 'index' | 'detect' | 'rank';
 
 interface ResponseBase {
   schemaVersion: number;
@@ -54,6 +55,7 @@ export interface ComputedResponse extends ResponseBase {
   rankings: Partial<Record<MethodId, RankResult[]>>;
   /** Methods that were computed, in display order. */
   methods: MethodId[];
+  detection: DetectionResult;
 }
 
 export interface ProgressResponse extends ResponseBase {
