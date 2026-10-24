@@ -22,6 +22,7 @@ import { RESULT_METHODS, resultRow, resultsJsonl } from '../src/core/eval/schema
 import type { ResultRow, RunReport } from '../src/core/eval/schema';
 import { resultsMarkdown, rewriteReadmeResults } from '../src/core/eval/resultsMd';
 import { FileHeldOutStorage, isMissing, readJson, writeArtifacts, writeNewJson } from './fsAdapters';
+import { localCsvReadiness, withLocalReadiness, requireFrozenReadiness, sourceReadinessMarkdown } from './sourceReadiness';
 
 interface Options { final: boolean; reread: boolean; benchmark: boolean; out: string; csv: string | null; asOf: string | null; rankConfig: string | null; evalConfig: string | null }
 function argumentsFor(argv: readonly string[]): Options {
@@ -93,6 +94,7 @@ async function main(): Promise<void> {
   if (options.final) {
     // No generation, tuning or source parsing is reachable on this branch.
     manifest = await validateManifest(await storage.readManifest(manifestPath));
+    requireFrozenReadiness(manifest.frozen.source);
     dev = await loadDev(devPath, manifest);
     const final = await runFinal({ final: true, manifestPath, storage, dev, at: new Date().toISOString(), reread: options.reread });
     report = final.report; manifest = final.manifest; attempt = final.attempt;
@@ -111,10 +113,13 @@ async function main(): Promise<void> {
       const path = resolve(options.csv); const asOf = Date.parse(options.asOf ?? '');
       if (!Number.isSafeInteger(asOf) || !/(Z|[+-]\d\d:\d\d)$/.test(options.asOf ?? '')) throw new Error('Explicit zoned --as-of required');
       const info = await stat(path); if (info.size > rank.max_bytes) throw new Error('Local CSV exceeds configured byte cap');
-      const parsed = await ingestCsvText(await readFile(path, 'utf8'), { asOf, limits: rank, source: 'text', sourceName: basename(path) });
+      const csvBytes = await readFile(path);
+      if (csvBytes.length > rank.max_bytes) throw new Error('Local CSV exceeds configured byte cap');
+      const parsed = await ingestCsvText(csvBytes.toString('utf8'), { asOf, limits: rank, source: 'text', sourceName: basename(path) });
       if (!parsed.dataset || parsed.report.rejected > 0) throw new Error('Normalized local CSV must have no rejected rows: ' + JSON.stringify(parsed.report.reasonCounts));
       dataset = parsed.dataset; truth = null;
-      source = { kind: 'local-csv', sourceHash: dataset.datasetHash, sourceName: basename(path), asOf, calendar: null, generatorVersion: null };
+      const readiness = await localCsvReadiness(path, csvBytes, parsed.report.accepted);
+      source = withLocalReadiness({ kind: 'local-csv', sourceHash: dataset.datasetHash, sourceName: basename(path), asOf, calendar: null, generatorVersion: null }, readiness);
     } else {
       const profile = getProfile(protocol.generator_profile); const generated = generateCatalogue(profile, protocol.generator_seed);
       dataset = await buildDataset(generated.reviews, { asOf: profile.asOf, verifiedColumnPresent: true, insufficientBelow: rank.insufficient_below });
@@ -143,7 +148,7 @@ async function main(): Promise<void> {
   }
   if (attempt !== null) manifest = await completeFinal({ storage, manifestPath, report, attempt,
     at: new Date().toISOString(), frozenHash: manifest.frozenHash });
-  const jsonl = resultsJsonl(report.rows); const markdown = resultsMarkdown(report, manifest);
+  const jsonl = resultsJsonl(report.rows); const markdown = resultsMarkdown(report, manifest) + sourceReadinessMarkdown(manifest.frozen.source);
   const runName = attempt === null ? 'dev' : 'final-' + String(attempt).padStart(4, '0');
   await writeArtifacts(join(out, 'runs', runName), jsonl, markdown, report);
   await Promise.all([writeFile(join(out, 'results.jsonl'), jsonl, 'utf8'), writeFile(join(out, 'results.md'), markdown, 'utf8')]);
