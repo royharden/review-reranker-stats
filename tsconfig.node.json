@@ -1,0 +1,21 @@
+{
+  // Node-run TypeScript: scripts/ (tsx) and the Vite/Vitest config files. Scripts may import src/core (pure, DOM-free); DOM lib is kept so core's globalThis.crypto/TextEncoder typings resolve identically.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["scripts", "vite.config.ts", "vitest.config.ts"]
+}
