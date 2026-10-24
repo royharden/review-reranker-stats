@@ -6,7 +6,9 @@
 
 import type { ValidationReport } from '../core/data/schema';
 import type { DetectionResult } from '../core/burst/types';
-import type { MethodId, RankResult } from '../core/types';
+import type { MethodId, RankConfig, RankResult } from '../core/types';
+import type { ReplayedRuling, SpanIdentity } from '../core/rulings/rulings';
+import type { ItemDetail } from './details';
 
 export const SCHEMA_VERSION = 1;
 
@@ -21,6 +23,7 @@ export interface LoadRequest {
   schemaVersion: number;
   requestId: number;
   source: LoadSource;
+  config?: unknown;
 }
 
 export interface ComputeRequest {
@@ -56,6 +59,13 @@ export interface ComputedResponse extends ResponseBase {
   /** Methods that were computed, in display order. */
   methods: MethodId[];
   detection: DetectionResult;
+  computedConfig: RankConfig;
+  asOf: number;
+  categories: string[];
+  methodLabels: Partial<Record<MethodId, string>>;
+  itemDetails: ItemDetail[];
+  rulingReplay: ReplayedRuling[];
+  spanIdentities: SpanIdentity[];
 }
 
 export interface ProgressResponse extends ResponseBase {
@@ -105,15 +115,15 @@ export function parseWorkerRequest(raw: unknown): RequestParse {
     const s = raw.source;
     if (!isRecord(s)) return { ok: false, requestId, code: 'bad-request', message: 'load.source missing' };
     if (s.kind === 'file' && s.file instanceof Blob && typeof s.name === 'string' && isAsOf(s.asOf)) {
-      return { ok: true, request: { type: 'load', schemaVersion: SCHEMA_VERSION, requestId, source: { kind: 'file', file: s.file, name: s.name, asOf: s.asOf } } };
+      return { ok: true, request: { type: 'load', schemaVersion: SCHEMA_VERSION, requestId, config: raw.config, source: { kind: 'file', file: s.file, name: s.name, asOf: s.asOf } } };
     }
     if (s.kind === 'text' && typeof s.text === 'string' && typeof s.name === 'string' && isAsOf(s.asOf)) {
-      return { ok: true, request: { type: 'load', schemaVersion: SCHEMA_VERSION, requestId, source: { kind: 'text', text: s.text, name: s.name, asOf: s.asOf } } };
+      return { ok: true, request: { type: 'load', schemaVersion: SCHEMA_VERSION, requestId, config: raw.config, source: { kind: 'text', text: s.text, name: s.name, asOf: s.asOf } } };
     }
     if (s.kind === 'sample' && s.profile === 'demo' && typeof s.parsingTrapsCsv === 'string') {
       return {
         ok: true,
-        request: { type: 'load', schemaVersion: SCHEMA_VERSION, requestId, source: { kind: 'sample', profile: 'demo', parsingTrapsCsv: s.parsingTrapsCsv } },
+        request: { type: 'load', schemaVersion: SCHEMA_VERSION, requestId, config: raw.config, source: { kind: 'sample', profile: 'demo', parsingTrapsCsv: s.parsingTrapsCsv } },
       };
     }
     return { ok: false, requestId, code: 'bad-request', message: 'load.source is not a valid file, text or sample source' };

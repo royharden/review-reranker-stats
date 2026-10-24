@@ -13,7 +13,7 @@ resolved, and no test result, benchmark or evaluation number exists. The only ch
 pass (TypeScript types stripped by Node's built-in stripper, then `node --check`) over the `.ts` files; `.tsx` files
 have only been read by eye.
 
-The code and documentation are **written by coding agents** (Claude Code subagents working from the plan in the
+The code and documentation are **written by coding agents** (Claude Code and Codex subagents working from the plan in the
 parent folder). Every claim about behaviour is a design intention until the deferred checks in
 [`docs/DEFERRED-VALIDATION.md`](docs/DEFERRED-VALIDATION.md) have been run.
 
@@ -51,13 +51,44 @@ parent folder). Every claim about behaviour is a design intention until the defe
 
 M3 source now includes all six ranking methods, three weight ablations, posterior-mean/lower-endpoint EB keys,
 positive review weights, and the sparse three-pass burst detector with seeded permutation tests and per-item Holm
-correction. The worker computes and returns every method plus detector results; the thin UI still displays only
-`mean` until the full UI milestone. New test source covers the named traps, floors, overlap handling, caps,
+correction. The worker computes and returns every method plus detector results. New test source covers the named traps, floors, overlap handling, caps,
 determinism and no exclusion. None of these tests or computations has been run.
 
 Ranking uses absolute star estimates (or Wilson's lower endpoint on the top-box-share axis). Within-category
 percentiles are display-only, so category filtering does not redefine global rank. Detector p-values are evidence
 scores, not fraud probabilities; volume alone never downweights a review, and untested spans remain marked partial.
+
+M4 source adds the complete local analysis journey: Load, Ranking, Item, Bursts and Params pages; SVG timelines,
+method and EB rank-key controls, category filters, per-method numbers, status labels, validation details, progress,
+cancellation/reload recovery, and CSV/JSONL downloads. Item timelines use at most 160 count buckets and show a
+seven-day rolling mean at each bucket end; chart aggregation never changes detector inputs. Ranking exports include
+the full catalogue for the selected method, global rank/delta, interval quantity/level, ruling labels, `asOf`, hashes
+and applied configuration. Text cells are formula-neutralised; numeric deltas remain numeric.
+
+Rulings use the versioned camelCase `rulings-1` schema, retain history, and replay the highest sequence per item/span.
+Only compact decisions are saved under `rulings:<datasetHash>`; reviews, text and CSV rows are never persisted.
+Unreviewed/skipped flags keep the configured burst factor, confirmed flags keep it explicitly, and restored spans
+use one. Overlapping active spans still apply their minimum factor once. This is a local analysis (dry run), not an
+action on a catalogue. Dataset, detector-configuration (including `asOf`), and span-review hashes must match;
+ranking-only changes preserve rulings. Invalidated decisions stay in the log with a reason.
+
+Browser storage failures switch to an in-memory log and a download warning. An unreadable stored log is preserved
+without overwriting it; new rulings then stay in memory. JSONL imports validate the whole log atomically. Identical
+sequence/record pairs deduplicate, but conflicting sequences are rejected rather than rewriting history. Portable
+logs are capped at 5 MB and 20,000 records; exceeding a cap fails visibly. Keep a JSONL download before reloading
+when storage is unavailable. Configuration is not persisted: reproduce any detector edits before replaying a saved
+decision. The full worker configuration hash tracks result provenance, never ruling invalidation.
+
+Intended demo after live validation: **Load sample → Ranking → choose a method/item → Bursts → restore or confirm →
+recompute → download rulings → reload the sample → replay → download ranking CSV**. Uploads use today's UTC date
+as an editable `asOf`; the sample retains its fixed reference date. Params edits validate before applying. Input
+limits and insufficient-support labels apply on the next load, with committed byte/row/example caps retained.
+Cancel terminates and respawns the worker; **Reload last source** restores the in-memory file/sample explicitly.
+
+The M4 test source under `tests/rulings`, `tests/explain`, `tests/export` and `tests/worker` covers replay,
+invalidation, calendar-safe imports, storage fallback, grounded explanations, CSV injection cases, compact timeline
+aggregation and the integrated ruling/worker protocol. These tests, all UI rendering, and all interaction behavior
+are still **unrun**. `.ts` syntax checks do not establish type correctness, accessibility or runtime readiness.
 
 Once installs are authorised, from this folder:
 

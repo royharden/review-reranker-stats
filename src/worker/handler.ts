@@ -7,13 +7,15 @@
 import { configHash, defaultConfig, validateConfig } from '../core/config';
 import { ingestCsvBlob, ingestCsvText } from '../core/data/parse';
 import type { IngestLimits, IngestResult } from '../core/data/parse';
-import { contextFromDetection, detectBursts } from '../core/burst/detect';
+import { detectBursts } from '../core/burst/detect';
+import { replayRulings } from '../core/rulings/rulings';
 import { annotateRankings } from '../core/rankers/ablations';
 import { registeredRankers } from '../core/rankers/registry';
 import { buildSampleCsv } from '../core/synth/sample';
 import type { Dataset, MethodId, RankResult } from '../core/types';
 import { SCHEMA_VERSION, parseWorkerRequest } from './protocol';
 import type { ComputeRequest, LoadRequest, ProgressPhase, WorkerResponse } from './protocol';
+import { buildItemDetails } from './details';
 
 export type Post = (message: WorkerResponse) => void;
 
@@ -26,12 +28,6 @@ export function createComputeHandler(post: Post): ComputeHandler {
   let dataset: Dataset | null = null;
   let queue: Promise<void> = Promise.resolve();
   const defaults = defaultConfig();
-  const limits: IngestLimits = {
-    max_bytes: defaults.max_bytes,
-    max_rows: defaults.max_rows,
-    max_examples_per_reason: defaults.max_examples_per_reason,
-    insufficient_below: defaults.insufficient_below,
-  };
 
   const progress = (requestId: number, phase: ProgressPhase, pct: number, cfgHash: string | null = null): void => {
     post({
@@ -49,6 +45,15 @@ export function createComputeHandler(post: Post): ComputeHandler {
     const { source, requestId } = req;
     // A new load replaces the dataset even if the file is rejected: the user asked for this file, not the old one.
     dataset = null;
+    const validated = validateConfig(req.config ?? defaults);
+    if (!validated.ok) {
+      post({ type: 'error', schemaVersion: SCHEMA_VERSION, requestId, datasetHash: null, configHash: null,
+        code: 'invalid-config', message: 'Invalid load parameters.', details: validated.errors });
+      return;
+    }
+    const input = validated.config;
+    const limits: IngestLimits = { max_bytes: Math.min(defaults.max_bytes, input.max_bytes), max_rows: Math.min(defaults.max_rows, input.max_rows),
+      max_examples_per_reason: Math.min(defaults.max_examples_per_reason, input.max_examples_per_reason), insufficient_below: input.insufficient_below };
     const onProgress = (f: number) => progress(requestId, 'parse', f);
     let result: IngestResult;
     if (source.kind === 'file') {
@@ -115,8 +120,8 @@ export function createComputeHandler(post: Post): ComputeHandler {
     const cfgHash = await configHash(config);
     progress(requestId, 'detect', 0, cfgHash);
     const detection = await detectBursts(ds, config);
-    // M4 replays req.rulings into these span weights; M3 uses the unreviewed default.
-    const ctx = contextFromDetection(ds, detection, config);
+    const replay = await replayRulings(ds, detection, config, req.rulings);
+    const ctx = replay.context;
     progress(requestId, 'detect', 1, cfgHash);
     const rankers = registeredRankers();
     const rankings: Partial<Record<MethodId, RankResult[]>> = {};
@@ -136,6 +141,13 @@ export function createComputeHandler(post: Post): ComputeHandler {
       rankings,
       methods,
       detection,
+      computedConfig: config,
+      asOf: ds.asOf,
+      categories: ds.categories,
+      methodLabels: Object.fromEntries(rankers.map((ranker) => [ranker.id, ranker.label])),
+      itemDetails: buildItemDetails(ds, rankings, methods),
+      rulingReplay: replay.latest,
+      spanIdentities: replay.identities,
     });
   };
 

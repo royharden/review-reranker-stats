@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { defaultConfig } from '../../src/core/config';
 import { emptyReasonCounts } from '../../src/core/data/schema';
 import type { ValidationReport } from '../../src/core/data/schema';
 import { appReducer, initialAppState, isStale } from '../../src/ui/state';
@@ -45,6 +46,7 @@ const computed = (requestId: number, datasetHash: string, configHash: string): W
   configHash,
   rankings: { mean: [] },
   methods: ['mean'],
+  computedConfig: defaultConfig(), asOf: 0, categories: [], methodLabels: { mean: 'Mean' }, itemDetails: [], rulingReplay: [], spanIdentities: [],
   detection: { schema: 'bursts-1', datasetHash, detectorConfigHash: 'detector-C', status: 'assessed', items: [], spans: [], testedSpanCount: 0,
     diagnostics: { candidateDays: 0, baselineWindowsEvaluated: 0 } },
 });

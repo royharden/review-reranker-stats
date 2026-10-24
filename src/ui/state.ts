@@ -7,7 +7,9 @@
 
 import type { ValidationReport } from '../core/data/schema';
 import type { DetectionResult } from '../core/burst/types';
-import type { MethodId, RankResult } from '../core/types';
+import type { MethodId, RankConfig, RankResult } from '../core/types';
+import type { ReplayedRuling, SpanIdentity } from '../core/rulings/rulings';
+import type { ItemDetail } from '../worker/details';
 import { SCHEMA_VERSION } from '../worker/protocol';
 import type { ErrorCode, ProgressPhase, WorkerResponse } from '../worker/protocol';
 
@@ -31,6 +33,13 @@ export interface AppState {
   rankings: Partial<Record<MethodId, RankResult[]>> | null;
   methods: MethodId[];
   detection: DetectionResult | null;
+  computedConfig: RankConfig | null;
+  asOf: number | null;
+  categories: string[];
+  methodLabels: Partial<Record<MethodId, string>>;
+  itemDetails: ItemDetail[];
+  rulingReplay: ReplayedRuling[];
+  spanIdentities: SpanIdentity[];
   progress: { phase: ProgressPhase; pct: number } | null;
   error: UiError | null;
   /** Responses discarded as stale (for display/debugging and tests). */
@@ -54,6 +63,7 @@ export function initialAppState(): AppState {
     rankings: null,
     methods: [],
     detection: null,
+    computedConfig: null, asOf: null, categories: [], methodLabels: {}, itemDetails: [], rulingReplay: [], spanIdentities: [],
     progress: null,
     error: null,
     staleDiscarded: 0,
@@ -81,7 +91,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       };
       if (action.kind === 'load') {
         // A new load supersedes everything derived from the previous dataset.
-        return { ...base, phase: 'loading', report: null, datasetHash: null, configHash: null, rankings: null, methods: [], detection: null };
+        return { ...base, phase: 'loading', report: null, datasetHash: null, configHash: null, rankings: null, methods: [], detection: null,
+          computedConfig: null, asOf: null, categories: [], methodLabels: {}, itemDetails: [], rulingReplay: [], spanIdentities: [] };
       }
       // Keep the previous rankings visible (marked as recomputing) until the new ones arrive.
       return { ...base, phase: 'computing' };
@@ -105,6 +116,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
             rankings: null,
             methods: [],
             detection: null,
+            computedConfig: null, asOf: r.report.asOf, categories: [], methodLabels: {}, itemDetails: [], rulingReplay: [], spanIdentities: [],
           };
         case 'computed':
           return {
@@ -116,6 +128,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
             rankings: r.rankings,
             methods: r.methods,
             detection: r.detection,
+            computedConfig: r.computedConfig, asOf: r.asOf, categories: r.categories, methodLabels: r.methodLabels,
+            itemDetails: r.itemDetails, rulingReplay: r.rulingReplay, spanIdentities: r.spanIdentities,
           };
         case 'error':
           return {
@@ -142,6 +156,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         rankings: null,
         methods: [],
         detection: null,
+        computedConfig: null, asOf: null, categories: [], methodLabels: {}, itemDetails: [], rulingReplay: [], spanIdentities: [],
         error: { code: 'cancelled', message: 'Cancelled. The compute worker was restarted; load the data again.', details: [] },
       };
 
@@ -155,6 +170,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         rankings: null,
         methods: [],
         detection: null,
+        computedConfig: null, asOf: null, categories: [], methodLabels: {}, itemDetails: [], rulingReplay: [], spanIdentities: [],
         error: { code: 'crash', message: action.message, details: [] },
       };
   }
